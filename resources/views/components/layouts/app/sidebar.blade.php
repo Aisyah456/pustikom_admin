@@ -19,13 +19,19 @@
           wire:navigate>{{ __('Dashboard') }}</flux:navlist.item>
       </flux:navlist.group>
 
-      <flux:navlist.group :heading="__('Cms')" class="grid">
-        <flux:navlist.item icon="home" :href="route('dashboard')" :current="request()->routeIs('dashboard')"
-          wire:navigate>{{ __('Admin') }}</flux:navlist.item>
+        <flux:navlist.group :heading="__('CMS')" class="grid">
+        <flux:navlist.item icon="home" :href="route('surat-masuk.index')"
+          :current="request()->routeIs('surat-masuk')" wire:navigate>{{ __('Admin') }}</flux:navlist.item>
+        <flux:navlist.item icon="home" href="{{ route('outgoing-mails.index') }}"
+          :current="request()->routeIs('outgoing-mails')" wire:navigate>
+          {{ __('Banner') }}
+          
+        </flux:navlist.item>
       </flux:navlist.group>
+      
 
       <flux:navlist.group :heading="__('Surat')" class="grid">
-        <flux:navlist.item icon="home" :href="route('surat-masuk.index')"
+        <flux:navlist.item icon="home" :href="route('borrowings.index')"
           :current="request()->routeIs('surat-masuk')" wire:navigate>{{ __('Surat Masuk') }}</flux:navlist.item>
         <flux:navlist.item icon="home" href="{{ route('outgoing-mails.index') }}"
           :current="request()->routeIs('outgoing-mails')" wire:navigate>
@@ -36,7 +42,7 @@
 
       <flux:navlist.group :heading="__('Peminjaman')" class="grid">
         <flux:navlist.item icon="home" :href="route('surat-masuk.index')"
-          :current="request()->routeIs('surat-masuk')" wire:navigate>{{ __('Peminjamean Barang') }}</flux:navlist.item>
+          :current="request()->routeIs('borrowings')" wire:navigate>{{ __('Peminjamean Barang') }}</flux:navlist.item>
         <flux:navlist.item icon="home" href="{{ route('outgoing-mails.index') }}"
           :current="request()->routeIs('outgoing-mails')" wire:navigate>
           {{ __('Surat Keluar') }}

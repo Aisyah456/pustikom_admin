@@ -80,7 +80,7 @@ class BorrowingForm extends Component
             'quantity' => $this->quantity,
             'condition_out' => $this->condition_out,
             'status' => $this->borrowing->exists ? $this->borrowing->status : 'Borrowed', // Pastikan status awal 'Borrowed'
-            'admin_out' => auth()->user()->name ?? 'PUSTIKOM Admin', // ID atau Nama Admin yang sedang login
+            // 'admin_out' => auth()->user()->name ?? 'PUSTIKOM Admin', // ID atau Nama Admin yang sedang login
         ])->save();
 
         // 4. Update stok

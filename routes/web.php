@@ -16,10 +16,6 @@ Route::view('dashboard', 'dashboard')
 Route::resource('surat-masuk', App\Http\Controllers\SuratMasukController::class);
 Route::resource('outgoing-mails', App\Http\Controllers\OutgoingMailController::class);
 
-// Route::get('/surat-masuk', fn() => view('surat-masuk.index'))->name('surat-masuk.index');
-// Route::get('/surat-masuk/create', App\Livewire\SuratMasukForm::class)->name('surat-masuk.create');
-// Route::get('/surat-masuk/{id}/edit', App\Livewire\SuratMasukForm::class)->name('surat-masuk.edit');
-
 Route::get('/borrowings', [BorrowingController::class, 'index'])->name('borrowings.index');
 Route::get('/borrowings/create', [BorrowingController::class, 'create'])->name('borrowings.create');
 Route::get('/borrowings/{borrowing}/edit', [BorrowingController::class, 'edit'])->name('borrowings.edit');

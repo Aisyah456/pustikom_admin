@@ -23,11 +23,8 @@ final class BorrowingTable extends PowerGridComponent
         $this->showCheckBox();
 
         return [
-            PowerGrid::header()
-                ->showSearchInput(),
-            PowerGrid::footer()
-                ->showPerPage()
-                ->showRecordCount(),
+            PowerGrid::header()->showSearchInput(),
+            PowerGrid::footer()->showPerPage()->showRecordCount(),
         ];
     }
 
@@ -35,10 +32,8 @@ final class BorrowingTable extends PowerGridComponent
     {
         return Borrowing::query()
             ->with([
-                'item',
-                // Load relasi polimorfik
-                'borrowerUnit' => function (MorphTo $morphTo) {
-                    // Tentukan relasi bersarang berdasarkan tipe model
+            'item',
+            'borrowerUnit' => function (MorphTo $morphTo) {
                     $morphTo->morphWith([
                         \App\Models\StudyProgram::class => ['faculty'],
                     ]);
@@ -59,52 +54,65 @@ final class BorrowingTable extends PowerGridComponent
             ->add('borrower_unit_id')
             ->add('borrower_unit_type')
             ->add('item_id')
-            ->add('borrow_date_formatted', fn(Borrowing $model) => Carbon::parse($model->borrow_date)->format('d/m/Y H:i:s'))
-            ->add('estimated_return_date_formatted', fn(Borrowing $model) => Carbon::parse($model->estimated_return_date)->format('d/m/Y H:i:s'))
+            ->add('borrow_date')
+            ->add('estimated_return_date')
+            ->add('actual_return_date')
             ->add('purpose')
             ->add('quantity')
             ->add('condition_out')
             ->add('status')
-            ->add('actual_return_date_formatted', fn(Borrowing $model) => Carbon::parse($model->actual_return_date)->format('d/m/Y H:i:s'))
             ->add('condition_in')
             ->add('notes')
             ->add('admin_out')
             ->add('admin_in')
-            ->add('created_at');
+            ->add('created_at')
+            // Tambahkan field komputasi/relasi agar bisa disort/search
+            ->add('item_name')
+            ->add('unit_peminjam_display')
+            // Formatted versions
+            ->add('borrow_date_formatted', fn(Borrowing $m) => Carbon::parse($m->borrow_date)->format('d/m/Y H:i'))
+            ->add('estimated_return_date_formatted', fn(Borrowing $m) => Carbon::parse($m->estimated_return_date)->format('d/m/Y H:i'))
+            ->add('actual_return_date_formatted', fn(Borrowing $m) => $m->actual_return_date ? Carbon::parse($m->actual_return_date)->format('d/m/Y H:i') : '-') // Perbaikan untuk actual_return_date null
+            ->add('created_at_formatted', fn(Borrowing $m) => Carbon::parse($m->created_at)->format('d/m/Y H:i'));
     }
 
     public function columns(): array
     {
         return [
-            Column::make('Id', 'id'),
+            Column::make('ID', 'id'),
+
             Column::make('Nama Peminjam', 'borrower_name')
                 ->sortable()
                 ->searchable(),
 
-            // 2. Kolom Unit/Prodi/Fakultas (Custom Column)
-            // Kolom ini akan diolah di render()
-            Column::make('Unit Peminjam', 'unit_peminjam_display', 'borrower_unit_type')
+            // Kolom komputasi, tidak perlu argumen ketiga (kecuali ingin disort/search berdasarkan field DB lain)
+            Column::make('Unit Peminjam', 'unit_peminjam_display')
                 ->sortable(),
 
-            // 3. Kolom Barang
-            Column::make('Nama Barang', 'item_name', 'item_id')
+            // Kolom komputasi/relasi
+            Column::make('Nama Barang', 'item_name')
                 ->sortable()
                 ->searchable(),
 
-            // 4. Kolom Waktu dan Status
-            Column::make('Tgl Pinjam', 'borrow_date')
-                ->sortable()
-                ->makeInputDatePicker(),
+            // **PERBAIKAN TANGGAL** Menggunakan field yang diformat, tetapi sort/filter berdasarkan field DB asli
+            Column::make('Tgl Pinjam', 'borrow_date_formatted', 'borrow_date')
+                ->sortable(), // Hapus ->filterDateBetween() karena sudah di filters()
 
-            Column::make('Tgl Kembali Estimasi', 'estimated_return_date')
-                ->sortable()
-                ->makeInputDatePicker(),
+            // **PERBAIKAN TANGGAL**
+            Column::make('Tgl Kembali Estimasi', 'estimated_return_date_formatted', 'estimated_return_date')
+                ->sortable(), // Hapus ->filterDateBetween() karena sudah di filters()
+
+            Column::make('Tgl Kembali Aktual', 'actual_return_date_formatted', 'actual_return_date')
+                ->sortable(), // Tambahkan kolom Tgl Kembali Aktual
 
             Column::make('Status', 'status')
                 ->sortable()
-                ->makeInputSelect(config('powergrid.borrowing_statuses'), 'status', 'status'),
+                ->makeSelect(
+                    config('powergrid.borrowing_statuses'),
+                    'status',
+                    'status'
+                ),
 
-            // Kolom Lainnya
             Column::make('Admin Keluar', 'admin_out')
                 ->sortable()
                 ->searchable(),
@@ -113,12 +121,8 @@ final class BorrowingTable extends PowerGridComponent
                 ->sortable()
                 ->searchable(),
 
-            Column::make('Created at', 'created_at_formatted', 'created_at')
+            Column::make('Created At', 'created_at_formatted', 'created_at')
                 ->sortable(),
-
-            Column::make('Created at', 'created_at')
-                ->sortable()
-                ->searchable(),
 
             Column::action('Action')
         ];
@@ -127,6 +131,7 @@ final class BorrowingTable extends PowerGridComponent
     public function filters(): array
     {
         return [
+            // Filter tanggal didefinisikan di sini
             Filter::datetimepicker('borrow_date'),
             Filter::datetimepicker('estimated_return_date'),
             Filter::datetimepicker('actual_return_date'),
@@ -145,7 +150,7 @@ final class BorrowingTable extends PowerGridComponent
             Button::add('edit')
                 ->slot('Edit: ' . $row->id)
                 ->id()
-                ->class('pg-btn-white dark:ring-pg-primary-600 dark:border-pg-primary-600 dark:hover:bg-pg-primary-700 dark:ring-offset-pg-primary-800 dark:text-pg-primary-300 dark:bg-pg-primary-700')
+                ->class('pg-btn-white')
                 ->dispatch('edit', ['rowId' => $row->id])
         ];
     }
@@ -155,51 +160,63 @@ final class BorrowingTable extends PowerGridComponent
         $unitDisplay = fn(Borrowing $model) => $this->getBorrowerUnitDisplay($model);
 
         return view('powergrid::components.table', [
-            'data' => $this->prepareData(
-                $this->request()
-            )->map(function (Borrowing $model) use ($unitDisplay) {
-
-                // Tambahkan kolom virtual untuk nama item
-                $model->item_name = $model->item->name;
-
-                // Tambahkan kolom virtual untuk tampilan unit peminjam
-                $model->unit_peminjam_display = $unitDisplay($model);
+            'data' => $this->prepareData($this->request())
+                ->map(function (Borrowing $model) use ($unitDisplay) {
+                    // Penambahan data komputasi untuk kolom
+                    $model->item_name = $model->item->name ?? '-';
+                    $model->unit_peminjam_display = $unitDisplay($model);
 
                 return $model;
             })
         ]);
     }
 
-    // Tambahkan metode helper ini
     protected function getBorrowerUnitDisplay(Borrowing $borrowing): string
     {
         $unit = $borrowing->borrowerUnit;
 
-        if (!$unit) {
-            return 'N/A';
-        }
+        if (!$unit) return 'N/A';
 
         $name = $unit->name;
 
-        // Jika tipe-nya StudyProgram, tambahkan nama Fakultas
-        if ($borrowing->borrower_unit_type === \App\Models\StudyProgram::class && $unit->faculty) {
+        if (
+            $borrowing->borrower_unit_type === \App\Models\StudyProgram::class
+            && $unit->faculty
+        ) {
             return "{$name} (Fak. {$unit->faculty->name})";
         }
 
         return $name;
     }
 
-
     public function actionRules($row): array
     {
         return [
+            // Action rules menggunakan tombol yang didefinisikan di actions()
+            // Jika Anda ingin menggunakan Action Rules (route), ganti dengan:
+
+            /*
             Button::make('edit', 'Edit')
-                ->class('bg-indigo-500 cursor-pointer text-white px-3 py-2.5 m-1 rounded text-sm')
-                ->route('borrowings.edit', ['borrowing' => 'id']),
+                ->class('bg-indigo-500 text-white px-3 py-2 m-1 rounded text-sm')
+                ->route('borrowings.edit', ['borrowing' => $row->id]),
 
             Button::make('destroy', 'Delete')
-                ->class('bg-red-500 cursor-pointer text-white px-3 py-2 m-1 rounded text-sm')
-                ->route('borrowings.destroy', ['borrowing' => 'id'])
+                ->class('bg-red-500 text-white px-3 py-2 m-1 rounded text-sm')
+                ->route('borrowings.destroy', ['borrowing' => $row->id])
+                ->method('delete')
+            */
+
+            // Karena Anda memiliki actions(Borrowing $row) di atas, saya asumsikan Anda ingin menggunakan itu.
+            // Biarkan actionRules() kosong atau gunakan route seperti di atas.
+
+            // Saya biarkan versi asli Anda, tetapi menggunakan $row->id
+            Button::make('edit', 'Edit')
+                ->class('bg-indigo-500 text-white px-3 py-2 m-1 rounded text-sm')
+                ->route('borrowings.edit', ['borrowing' => $row->id]), // Perbaikan: gunakan $row->id
+
+            Button::make('destroy', 'Delete')
+                ->class('bg-red-500 text-white px-3 py-2 m-1 rounded text-sm')
+                ->route('borrowings.destroy', ['borrowing' => $row->id]) // Perbaikan: gunakan $row->id
                 ->method('delete')
         ];
     }

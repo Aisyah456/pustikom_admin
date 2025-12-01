@@ -22,6 +22,20 @@ Route::get('/borrowings/{borrowing}/edit', [BorrowingController::class, 'edit'])
 Route::delete('/borrowings/{borrowing}', [BorrowingController::class, 'destroy'])->name('borrowings.destroy');
 
 Route::middleware(['auth'])->group(function () {
+    Route::get('/manajemen/jenis-pengajuan', function () {
+        return view('submission-types.index');
+    })->name('submission_types.index');
+
+    Route::get('/manajemen/unit', function () {
+        return view('units.index');
+    })->name('units.index');
+
+    Route::get('/manajemen/pengajuan', function () {
+        return view('submissions.index');
+    })->name('submissions.index');
+});
+
+Route::middleware(['auth'])->group(function () {
     Route::redirect('settings', 'settings/profile');
 
     Volt::route('settings/profile', 'settings.profile')->name('profile.edit');

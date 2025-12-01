@@ -13,8 +13,9 @@ return new class extends Migration
     {
         Schema::create('units', function (Blueprint $table) {
             $table->id();
+            $table->foreignId('parent_id')->nullable()->constrained('units')->onDelete('cascade');
             $table->string('name')->unique();
-            $table->string('code')->nullable();
+            $table->string('type')->comment('Fakultas, Prodi, Biro, dll.');
             $table->timestamps();
         });
     }

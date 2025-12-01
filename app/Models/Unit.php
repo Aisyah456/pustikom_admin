@@ -4,16 +4,31 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Unit extends Model
 {
     use HasFactory;
 
-    protected $fillable = ['name', 'code'];
+    protected $fillable = [
+        'parent_id',
+        'name',
+        'type',
+    ];
 
-    // Relasi Polimorfik: Bisa menjadi 'borrower_unit' pada transaksi peminjaman
-    public function borrowings()
+    public function submissions(): HasMany
     {
-        return $this->morphMany(Borrowing::class, 'borrower_unit');
+        return $this->hasMany(submission::class);
+    }
+
+    public function parent(): BelongsTo
+    {
+        return $this->belongsTo(Unit::class, 'parent_id');
+    }
+
+    public function children(): HasMany
+    {
+        return $this->hasMany(Unit::class, 'parent_id');
     }
 }
